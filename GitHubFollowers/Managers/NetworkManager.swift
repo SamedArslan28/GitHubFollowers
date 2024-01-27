@@ -12,35 +12,35 @@ class NetworkManager {
     let baseUrl = "https://api.github.com/users/"
     private init() { }
     
-    func getFollowers(for username: String, page:Int, completion: @escaping ([Follower]?, String?) -> ()){
+    func getFollowers(for username: String, page:Int, completion: @escaping (Result<[Follower], GFError>) -> ()){
         let endPoint = baseUrl + "\(username)/followers?per_page=100&page=\(page)"
         guard let url = URL(string: endPoint) else {
-            completion(nil, "That request is not valid please try again.")
+            completion(.failure(.invalidUsername))
             return
         }
         
         let task = URLSession.shared.dataTask(with: url) { data, response, error in
             if let _ = error {
-                completion(nil, "No Internet")
+                completion(.failure(.noInternet))
                 return
             }
             
             guard let response = response as? HTTPURLResponse, response.statusCode == 200 else {
-                completion(nil, "Bad request")
+                completion(.failure(.badRequest))
                 return
             }
             
             guard let data = data else{
-                completion(nil, "Data is invalid")
+                completion(.failure(.invalidData))
                 return
             }
             do {
                 let decoder = JSONDecoder()
                 decoder.keyDecodingStrategy = .convertFromSnakeCase
                 let followers = try decoder.decode([Follower].self, from: data)
-                completion(followers, nil)
+                completion(.success(followers))
             } catch  {
-                completion(nil, "Data is invalid")
+                completion(.failure(.invalidData))
             }
         }
         task.resume()
